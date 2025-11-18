@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # =====================================
-# FULL INSTALLER YHDS VPN (UDP + SSH/WS + Xray + Nginx + Trojan)
+# FULL INSTALLER YHDS VPN (UDP + SSH/WS + Xray + Nginx + Trojan-go + Telegram)
 # =====================================
 
-# Update dan install tools
+# Update & install tools
 apt update -y
 apt upgrade -y
-apt install lolcat figlet neofetch screenfetch unzip curl wget -y
+apt install lolcat figlet neofetch screenfetch unzip curl wget column -y
 
 # Disable IPv6 supaya UDP lebih stabil
 echo "Menonaktifkan IPv6..."
@@ -26,7 +26,8 @@ mkdir -p /root/udp
 # Banner YHDS VPN
 clear
 figlet -f slant "YHDS VPN" | lolcat
-echo "Installer YHDS VPN - UDP, SSH/WS, Xray, Nginx, Trojan" | lolcat
+echo ""
+echo "        YHDS VPN Installer"
 sleep 3
 
 # Set timezone Sri Lanka GMT+5:30
@@ -36,22 +37,56 @@ echo "Timezone diubah ke GMT+5:30 (Sri Lanka)"
 # ===============================
 # Install Xray
 # ===============================
-echo "Installing Xray..."
+echo "Install Xray..."
 bash -c "$(curl -L https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh)" >/dev/null 2>&1
 
 # ===============================
 # Install Nginx
 # ===============================
-echo "Installing Nginx..."
+echo "Install Nginx..."
 apt install nginx -y
 systemctl enable nginx
 systemctl start nginx
 
 # ===============================
-# Install Trojan-go
+# Install Trojan-go dengan service
 # ===============================
-echo "Installing Trojan..."
-bash -c "$(curl -sL https://raw.githubusercontent.com/p4gefau1t/trojan-install/master/trojan.sh)" >/dev/null 2>&1
+echo "Install Trojan-go..."
+wget https://github.com/p4gefau1t/trojan-go/releases/download/v0.10.4/trojan-go-linux-amd64.zip -O /tmp/trojan-go.zip
+unzip /tmp/trojan-go.zip -d /usr/local/bin/
+chmod +x /usr/local/bin/trojan-go
+
+mkdir -p /etc/trojan-go
+cat <<EOF > /etc/trojan-go/config.json
+{
+  "run_type": "server",
+  "local_addr": "0.0.0.0",
+  "local_port": 443,
+  "password": ["YHDS2025"],
+  "ssl": {
+    "cert": "/etc/ssl/certs/ssl-cert-snakeoil.pem",
+    "key": "/etc/ssl/private/ssl-cert-snakeoil.key"
+  }
+}
+EOF
+
+cat <<EOF > /etc/systemd/system/trojan-go.service
+[Unit]
+Description=Trojan-go Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/trojan-go -config /etc/trojan-go/config.json
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable trojan-go
+systemctl start trojan-go
 
 # ===============================
 # Download UDP Custom dari GitHub
@@ -86,11 +121,11 @@ WantedBy=default.target
 EOF
 
 systemctl daemon-reload
-systemctl start udp-custom
 systemctl enable udp-custom
+systemctl start udp-custom
 
 # ===============================
-# Download skrip pendukung menu
+# Download skrip tambahan menu
 # ===============================
 mkdir -p /etc/YHDS
 cd /etc/YHDS
@@ -107,166 +142,87 @@ rm system.zip
 # ===============================
 cat << 'EOM' > /usr/local/bin/menu
 #!/bin/bash
-# YHDS VPN Menu
-
-status_server() {
-    clear
-    figlet -f slant "SERVER STATUS" | lolcat
-    echo "=============================================="
-    echo "              STATUS LAYANAN"
-    echo "=============================================="
-
-    # UDP
-    if systemctl is-active --quiet udp-custom; then
-        echo -e "UDP Custom        : \e[32mONLINE\e[0m"
-    else
-        echo -e "UDP Custom        : \e[31mOFFLINE\e[0m"
-    fi
-
-    # SSH
-    if systemctl is-active --quiet ssh; then
-        echo -e "SSH               : \e[32mONLINE\e[0m"
-    else
-        echo -e "SSH               : \e[31mOFFLINE\e[0m"
-    fi
-
-    # NGINX
-    if systemctl is-active --quiet nginx; then
-        echo -e "Nginx             : \e[32mONLINE\e[0m"
-    else
-        echo -e "Nginx             : \e[31mOFFLINE\e[0m"
-    fi
-
-    # XRAY
-    if systemctl is-active --quiet xray; then
-        echo -e "Xray              : \e[32mONLINE\e[0m"
-    else
-        echo -e "Xray              : \e[31mOFFLINE\e[0m"
-    fi
-
-    # TROJAN
-    if systemctl is-active --quiet trojan; then
-        echo -e "Trojan            : \e[32mONLINE\e[0m"
-    else
-        echo -e "Trojan            : \e[31mOFFLINE\e[0m"
-    fi
-
-    echo ""
-    echo "=============================================="
-    echo "               STATUS AKUN"
-    echo "=============================================="
-
-    # Hitung akun SSH
-    SSH_COUNT=$(grep -c "/bin/false" /etc/passwd)
-    echo "Total Akun SSH/WS       : $SSH_COUNT"
-
-    # Akun UDP
-    if [[ -f /etc/YHDS/system/udp-users.txt ]]; then
-        UDP_COUNT=$(wc -l < /etc/YHDS/system/udp-users.txt)
-    else
-        UDP_COUNT=0
-    fi
-    echo "Total Akun UDP          : $UDP_COUNT"
-
-    # Akun XRAY
-    XRAY_COUNT=$(grep -c '"id"' /usr/local/etc/xray/config.json 2>/dev/null)
-    echo "Total Akun Xray         : $XRAY_COUNT"
-
-    # Akun TROJAN
-    TROJAN_COUNT=$(grep -c '"password"' /usr/local/etc/trojan/config.json 2>/dev/null)
-    echo "Total Akun Trojan       : $TROJAN_COUNT"
-
-    echo ""
-    echo "Akun SSH/WS Aktif:"
-    last | head
-    echo ""
-    echo "Tekan ENTER untuk kembali..."
-    read
-}
-
-toggle_accounts() {
-    clear
-    figlet -f slant "ACCOUNT ON/OFF" | lolcat
-    echo "=================================="
-    echo "1) Nonaktifkan semua akun SSH/WS"
-    echo "2) Aktifkan semua akun SSH/WS"
-    echo "3) Nonaktifkan semua akun UDP"
-    echo "4) Aktifkan semua akun UDP"
-    echo "5) Nonaktifkan semua akun Xray"
-    echo "6) Aktifkan semua akun Xray"
-    echo "7) Nonaktifkan semua akun Trojan"
-    echo "8) Aktifkan semua akun Trojan"
-    echo "9) Kembali ke menu utama"
-    echo "=================================="
-    read -p "Pilih menu [1-9]: " choice
-
-    case $choice in
-        1) pkill -u $(awk -F: '/\/bin\/false/{print $1}' /etc/passwd); echo "Semua akun SSH/WS nonaktif"; sleep 2 ;;
-        2) echo "Aktifkan semua akun SSH/WS (manual enable jika ada skrip)"; sleep 2 ;;
-        3) if [[ -f /etc/YHDS/system/udp-users.txt ]]; then mv /etc/YHDS/system/udp-users.txt /etc/YHDS/system/udp-users.txt.off; fi; echo "Semua akun UDP nonaktif"; sleep 2 ;;
-        4) if [[ -f /etc/YHDS/system/udp-users.txt.off ]]; then mv /etc/YHDS/system/udp-users.txt.off /etc/YHDS/system/udp-users.txt; fi; echo "Semua akun UDP aktif"; sleep 2 ;;
-        5) echo "Xray akun nonaktif (gunakan skrip Xray manual)"; sleep 2 ;;
-        6) echo "Xray akun aktif (gunakan skrip Xray manual)"; sleep 2 ;;
-        7) echo "Trojan akun nonaktif (gunakan skrip Trojan manual)"; sleep 2 ;;
-        8) echo "Trojan akun aktif (gunakan skrip Trojan manual)"; sleep 2 ;;
-        9) return ;;
-        *) echo "Pilihan tidak valid"; sleep 2 ;;
-    esac
-}
 
 while true; do
     clear
     figlet -f slant "YHDS VPN" | lolcat
-    echo "==========================================="
-    echo "             YHDS VPN MENU"
-    echo "==========================================="
-    echo "1) Create User UDP"
-    echo "2) Create User SSH/WS Manual (non-80/443)"
-    echo "3) Create User SSH/WS Trial"
-    echo "4) Delete User"
-    echo "5) List Users"
-    echo "6) Remove Script"
-    echo "7) Torrent"
-    echo "8) Restart All Server (UDP, Xray, Nginx, Trojan)"
-    echo "9) Restart UDP Custom"
-    echo "10) Status Server & Akun"
-    echo "11) On/Off Semua Akun"
-    echo "12) Exit"
-    echo "==========================================="
-    read -p "Pilih menu [1-12]: " option
+    echo "=================================="
+    echo "       MENU UTAMA YHDS VPN"
+    echo "=================================="
+    echo "1) Tambah User SSH/WS/UDP"
+    echo "2) Hapus User"
+    echo "3) Daftar User"
+    echo "4) Remove Script"
+    echo "5) Torrent"
+    echo "6) Restart All Server (UDP, Xray, Nginx, Trojan-go)"
+    echo "7) Toggle On/Off Akun UDP/SSH/WS"
+    echo "8) Dashboard Status Server & Akun"
+    echo "9) Install & Setup Telegram Bot"
+    echo "10) Keluar"
+    echo "=================================="
+    read -p "Pilih menu [1-10]: " option
 
     case $option in
-        1) /etc/YHDS/system/Adduser.sh udp ;;
-        2) /etc/YHDS/system/Adduser.sh ;;
-        3) /etc/YHDS/system/Adduser.sh trial ;;
-        4) /etc/YHDS/system/DelUser.sh ;;
-        5) /etc/YHDS/system/Userlist.sh ;;
-        6) /etc/YHDS/system/RemoveScript.sh ;;
-        7) /etc/YHDS/system/torrent.sh ;;
+        1) /etc/YHDS/system/Adduser.sh ;;
+        2) /etc/YHDS/system/DelUser.sh ;;
+        3) /etc/YHDS/system/Userlist.sh ;;
+        4) /etc/YHDS/system/RemoveScript.sh ;;
+        5) /etc/YHDS/system/torrent.sh ;;
+        6)
+            echo "Restart semua service..."
+            for srv in udp-custom xray nginx trojan-go; do
+                if systemctl list-units --full -all | grep -q "^$srv"; then
+                    systemctl restart $srv
+                fi
+            done
+            echo "Semua service sudah direstart!"
+            sleep 3
+            ;;
+        7)
+            echo "Toggle ON/OFF akun"
+            if [ -f /etc/YHDS/system/udp-users.txt ]; then
+                nano /etc/YHDS/system/udp-users.txt
+            else
+                echo "Belum ada akun UDP/SSH/WS"
+                sleep 2
+            fi
+            ;;
         8)
-            echo "Restarting semua service..."
-            systemctl restart udp-custom xray nginx trojan ssh
-            echo "Done!"
-            sleep 2
+            clear
+            echo "=================================="
+            echo "       DASHBOARD SERVER"
+            echo "=================================="
+            echo "Status Service:"
+            for srv in udp-custom xray nginx trojan-go; do
+                systemctl status $srv --no-pager
+            done
+            echo ""
+            echo "AKUN UDP/SSH/WS:"
+            if [ -f /etc/YHDS/system/udp-users.txt ]; then
+                while IFS="|" read -r username status expire; do
+                    if [[ "$status" == "ON" ]]; then
+                        echo -e "\e[34m$username | $status | $expire\e[0m"
+                    else
+                        echo -e "\e[31m$username | $status | $expire\e[0m"
+                    fi
+                done < /etc/YHDS/system/udp-users.txt
+            else
+                echo "Belum ada akun dibuat"
+            fi
+            read -p "Tekan Enter untuk kembali..."
             ;;
         9)
-            echo "Restart UDP Custom..."
-            systemctl restart udp-custom
+            echo "Setup Telegram Bot..."
+            read -p "Masukkan Bot Token: " BOT_TOKEN
+            read -p "Masukkan Chat ID: " CHAT_ID
+            mkdir -p /etc/YHDS
+            echo "BOT_TOKEN=$BOT_TOKEN" > /etc/YHDS/telegram.conf
+            echo "CHAT_ID=$CHAT_ID" >> /etc/YHDS/telegram.conf
+            echo "Telegram Bot berhasil disimpan!"
             sleep 2
             ;;
-        10)
-            status_server
-            ;;
-        11)
-            toggle_accounts
-            ;;
-        12)
-            exit
-            ;;
-        *)
-            echo "Pilihan tidak valid!"
-            sleep 2
-            ;;
+        10) echo "Keluar dari menu"; exit ;;
+        *) echo "Pilihan salah"; sleep 2 ;;
     esac
 
     read -p "Tekan Enter untuk kembali ke menu..."
@@ -275,15 +231,20 @@ EOM
 
 chmod +x /usr/local/bin/menu
 
+# ===============================
 # Jalankan menu otomatis saat login
+# ===============================
 if ! grep -q "/usr/local/bin/menu" /root/.bashrc; then
     echo "/usr/local/bin/menu" >> /root/.bashrc
 fi
 
-# Finish
 clear
-figlet -f slant "YHDS VPN" | lolcat
+echo "=========================================="
 echo "YHDS VPN berhasil diinstall!"
-echo "UDP, SSH/WS, Xray, Nginx, Trojan siap digunakan"
-echo "Menu otomatis muncul setelah close atau login kembali"
+echo "UDP, SSH/WS, Xray, Nginx, Trojan-go siap digunakan"
+echo "IPv6 dinonaktifkan, UDP lebih stabil"
+echo "Menu utama: menu"
+echo "Menu akan otomatis muncul setelah close atau login kembali"
+echo "Dashboard menampilkan ON biru / OFF merah"
 echo "Github: https://github.com/Yahdiad1/Udp-custom"
+echo "=========================================="
