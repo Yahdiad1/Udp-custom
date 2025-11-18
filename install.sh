@@ -184,6 +184,36 @@ status_server() {
     read
 }
 
+toggle_accounts() {
+    clear
+    figlet -f slant "ACCOUNT ON/OFF" | lolcat
+    echo "=================================="
+    echo "1) Nonaktifkan semua akun SSH/WS"
+    echo "2) Aktifkan semua akun SSH/WS"
+    echo "3) Nonaktifkan semua akun UDP"
+    echo "4) Aktifkan semua akun UDP"
+    echo "5) Nonaktifkan semua akun Xray"
+    echo "6) Aktifkan semua akun Xray"
+    echo "7) Nonaktifkan semua akun Trojan"
+    echo "8) Aktifkan semua akun Trojan"
+    echo "9) Kembali ke menu utama"
+    echo "=================================="
+    read -p "Pilih menu [1-9]: " choice
+
+    case $choice in
+        1) pkill -u $(awk -F: '/\/bin\/false/{print $1}' /etc/passwd); echo "Semua akun SSH/WS nonaktif"; sleep 2 ;;
+        2) echo "Aktifkan semua akun SSH/WS (manual enable jika ada skrip)"; sleep 2 ;;
+        3) if [[ -f /etc/YHDS/system/udp-users.txt ]]; then mv /etc/YHDS/system/udp-users.txt /etc/YHDS/system/udp-users.txt.off; fi; echo "Semua akun UDP nonaktif"; sleep 2 ;;
+        4) if [[ -f /etc/YHDS/system/udp-users.txt.off ]]; then mv /etc/YHDS/system/udp-users.txt.off /etc/YHDS/system/udp-users.txt; fi; echo "Semua akun UDP aktif"; sleep 2 ;;
+        5) echo "Xray akun nonaktif (gunakan skrip Xray manual)"; sleep 2 ;;
+        6) echo "Xray akun aktif (gunakan skrip Xray manual)"; sleep 2 ;;
+        7) echo "Trojan akun nonaktif (gunakan skrip Trojan manual)"; sleep 2 ;;
+        8) echo "Trojan akun aktif (gunakan skrip Trojan manual)"; sleep 2 ;;
+        9) return ;;
+        *) echo "Pilihan tidak valid"; sleep 2 ;;
+    esac
+}
+
 while true; do
     clear
     figlet -f slant "YHDS VPN" | lolcat
@@ -191,7 +221,7 @@ while true; do
     echo "             YHDS VPN MENU"
     echo "==========================================="
     echo "1) Create User UDP"
-    echo "2) Create User SSH/WS Manual"
+    echo "2) Create User SSH/WS Manual (non-80/443)"
     echo "3) Create User SSH/WS Trial"
     echo "4) Delete User"
     echo "5) List Users"
@@ -200,9 +230,10 @@ while true; do
     echo "8) Restart All Server (UDP, Xray, Nginx, Trojan)"
     echo "9) Restart UDP Custom"
     echo "10) Status Server & Akun"
-    echo "11) Exit"
+    echo "11) On/Off Semua Akun"
+    echo "12) Exit"
     echo "==========================================="
-    read -p "Pilih menu [1-11]: " option
+    read -p "Pilih menu [1-12]: " option
 
     case $option in
         1) /etc/YHDS/system/Adduser.sh udp ;;
@@ -227,6 +258,9 @@ while true; do
             status_server
             ;;
         11)
+            toggle_accounts
+            ;;
+        12)
             exit
             ;;
         *)
