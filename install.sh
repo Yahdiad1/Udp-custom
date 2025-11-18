@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # =====================================
-# FULL INSTALLER YHDS VPN (UDP + SSH/WS + Xray + Nginx + Trojan-go + Telegram)
+# FULL INSTALLER YHDS VPN (UDP + Xray + Nginx + Trojan + Bot Telegram)
 # =====================================
 
 # Update & install tools
 apt update -y
 apt upgrade -y
-apt install lolcat figlet neofetch screenfetch unzip curl wget column -y
+apt install lolcat figlet neofetch screenfetch unzip curl wget jq -y
 
-# Disable IPv6 supaya UDP lebih stabil
+# Disable IPv6 supaya UDP stabil
 echo "Menonaktifkan IPv6..."
 sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sysctl -w net.ipv6.conf.default.disable_ipv6=1
@@ -23,12 +23,12 @@ sysctl -p
 rm -rf /root/udp
 mkdir -p /root/udp
 
-# Banner YHDS VPN
+# Banner YHDS VPN besar dan berwarna
 clear
 figlet -f slant "YHDS VPN" | lolcat
 echo ""
-echo "        YHDS VPN Installer"
-sleep 3
+echo "        Installer YHDS VPN"
+sleep 2
 
 # Set timezone Sri Lanka GMT+5:30
 ln -fs /usr/share/zoneinfo/Asia/Colombo /etc/localtime
@@ -49,44 +49,10 @@ systemctl enable nginx
 systemctl start nginx
 
 # ===============================
-# Install Trojan-go dengan service
+# Install Trojan-go
 # ===============================
 echo "Install Trojan-go..."
-wget https://github.com/p4gefau1t/trojan-go/releases/download/v0.10.4/trojan-go-linux-amd64.zip -O /tmp/trojan-go.zip
-unzip /tmp/trojan-go.zip -d /usr/local/bin/
-chmod +x /usr/local/bin/trojan-go
-
-mkdir -p /etc/trojan-go
-cat <<EOF > /etc/trojan-go/config.json
-{
-  "run_type": "server",
-  "local_addr": "0.0.0.0",
-  "local_port": 443,
-  "password": ["YHDS2025"],
-  "ssl": {
-    "cert": "/etc/ssl/certs/ssl-cert-snakeoil.pem",
-    "key": "/etc/ssl/private/ssl-cert-snakeoil.key"
-  }
-}
-EOF
-
-cat <<EOF > /etc/systemd/system/trojan-go.service
-[Unit]
-Description=Trojan-go Service
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/trojan-go -config /etc/trojan-go/config.json
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable trojan-go
-systemctl start trojan-go
+bash -c "$(curl -sL https://raw.githubusercontent.com/p4gefau1t/trojan-install/master/trojan.sh)" >/dev/null 2>&1
 
 # ===============================
 # Download UDP Custom dari GitHub
@@ -104,6 +70,7 @@ chmod 644 /root/udp/config.json
 # ===============================
 # Buat systemd service UDP Custom
 # ===============================
+if [ -z "$1" ]; then
 cat <<EOF > /etc/systemd/system/udp-custom.service
 [Unit]
 Description=YHDS VPN UDP Custom
@@ -119,10 +86,23 @@ RestartSec=2s
 [Install]
 WantedBy=default.target
 EOF
+else
+cat <<EOF > /etc/systemd/system/udp-custom.service
+[Unit]
+Description=YHDS VPN UDP Custom
 
-systemctl daemon-reload
-systemctl enable udp-custom
-systemctl start udp-custom
+[Service]
+User=root
+Type=simple
+ExecStart=/root/udp/udp-custom server -exclude $1
+WorkingDirectory=/root/udp/
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
+EOF
+fi
 
 # ===============================
 # Download skrip tambahan menu
@@ -133,34 +113,52 @@ wget "$GITHUB_RAW/system.zip"
 unzip system.zip
 cd system
 mv menu /usr/local/bin
-chmod +x menu Adduser.sh DelUser.sh Userlist.sh RemoveScript.sh torrent.sh
+chmod +x menu ChangeUser.sh Adduser.sh DelUser.sh Userlist.sh RemoveScript.sh torrent.sh
 cd /etc/YHDS
 rm system.zip
 
 # ===============================
-# Buat menu looping otomatis
+# Menu utama YHDS VPN full dengan dashboard
 # ===============================
 cat << 'EOM' > /usr/local/bin/menu
 #!/bin/bash
 
+RED='\e[31m'
+GREEN='\e[32m'
+BLUE='\e[34m'
+YELLOW='\e[33m'
+NC='\e[0m'
+
+status() {
+    for service in udp-custom xray nginx trojan-go; do
+        if systemctl is-active --quiet $service; then
+            echo -e "$service : ${GREEN}ON${NC}"
+        else
+            echo -e "$service : ${RED}OFF${NC}"
+        fi
+    done
+}
+
 while true; do
     clear
+    # Banner besar YHDS VPN
     figlet -f slant "YHDS VPN" | lolcat
-    echo "=================================="
-    echo "       MENU UTAMA YHDS VPN"
-    echo "=================================="
-    echo "1) Tambah User SSH/WS/UDP"
-    echo "2) Hapus User"
-    echo "3) Daftar User"
-    echo "4) Remove Script"
-    echo "5) Torrent"
-    echo "6) Restart All Server (UDP, Xray, Nginx, Trojan-go)"
-    echo "7) Toggle On/Off Akun UDP/SSH/WS"
-    echo "8) Dashboard Status Server & Akun"
-    echo "9) Install & Setup Telegram Bot"
-    echo "10) Keluar"
-    echo "=================================="
-    read -p "Pilih menu [1-10]: " option
+    echo ""
+    echo -e "${YELLOW}Status Server:${NC}"
+    status
+    echo ""
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${YELLOW}1) Tambah User SSH/WS${NC}"
+    echo -e "${YELLOW}2) Hapus User${NC}"
+    echo -e "${YELLOW}3) Daftar User${NC}"
+    echo -e "${YELLOW}4) Remove Script${NC}"
+    echo -e "${YELLOW}5) Torrent${NC}"
+    echo -e "${YELLOW}6) Restart Semua Server (UDP/Xray/Nginx/Trojan)${NC}"
+    echo -e "${YELLOW}7) Toggle On/Off Akun${NC}"
+    echo -e "${YELLOW}8) Install Bot Telegram Notifikasi${NC}"
+    echo -e "${YELLOW}9) Keluar${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    read -p "Pilih menu [1-9]: " option
 
     case $option in
         1) /etc/YHDS/system/Adduser.sh ;;
@@ -170,58 +168,21 @@ while true; do
         5) /etc/YHDS/system/torrent.sh ;;
         6)
             echo "Restart semua service..."
-            for srv in udp-custom xray nginx trojan-go; do
-                if systemctl list-units --full -all | grep -q "^$srv"; then
-                    systemctl restart $srv
-                fi
-            done
+            systemctl restart udp-custom xray nginx trojan-go
             echo "Semua service sudah direstart!"
             sleep 3
             ;;
-        7)
-            echo "Toggle ON/OFF akun"
-            if [ -f /etc/YHDS/system/udp-users.txt ]; then
-                nano /etc/YHDS/system/udp-users.txt
-            else
-                echo "Belum ada akun UDP/SSH/WS"
-                sleep 2
-            fi
-            ;;
+        7) /etc/YHDS/system/ChangeUser.sh ;;
         8)
-            clear
-            echo "=================================="
-            echo "       DASHBOARD SERVER"
-            echo "=================================="
-            echo "Status Service:"
-            for srv in udp-custom xray nginx trojan-go; do
-                systemctl status $srv --no-pager
-            done
-            echo ""
-            echo "AKUN UDP/SSH/WS:"
-            if [ -f /etc/YHDS/system/udp-users.txt ]; then
-                while IFS="|" read -r username status expire; do
-                    if [[ "$status" == "ON" ]]; then
-                        echo -e "\e[34m$username | $status | $expire\e[0m"
-                    else
-                        echo -e "\e[31m$username | $status | $expire\e[0m"
-                    fi
-                done < /etc/YHDS/system/udp-users.txt
-            else
-                echo "Belum ada akun dibuat"
-            fi
-            read -p "Tekan Enter untuk kembali..."
-            ;;
-        9)
-            echo "Setup Telegram Bot..."
-            read -p "Masukkan Bot Token: " BOT_TOKEN
-            read -p "Masukkan Chat ID: " CHAT_ID
-            mkdir -p /etc/YHDS
-            echo "BOT_TOKEN=$BOT_TOKEN" > /etc/YHDS/telegram.conf
-            echo "CHAT_ID=$CHAT_ID" >> /etc/YHDS/telegram.conf
-            echo "Telegram Bot berhasil disimpan!"
+            read -p "Masukkan TOKEN BOT: " BOT_TOKEN
+            read -p "Masukkan CHAT ID: " CHAT_ID
+            echo "Bot Telegram akan mengirim notifikasi..."
+            echo "TOKEN=$BOT_TOKEN" >> /etc/YHDS/telegram.env
+            echo "CHAT_ID=$CHAT_ID" >> /etc/YHDS/telegram.env
+            echo "Selesai! Notifikasi aktif."
             sleep 2
             ;;
-        10) echo "Keluar dari menu"; exit ;;
+        9) echo "Keluar dari menu"; exit ;;
         *) echo "Pilihan salah"; sleep 2 ;;
     esac
 
@@ -231,20 +192,22 @@ EOM
 
 chmod +x /usr/local/bin/menu
 
-# ===============================
 # Jalankan menu otomatis saat login
-# ===============================
 if ! grep -q "/usr/local/bin/menu" /root/.bashrc; then
     echo "/usr/local/bin/menu" >> /root/.bashrc
 fi
 
+# Start dan enable service UDP Custom
+systemctl daemon-reload
+systemctl start udp-custom
+systemctl enable udp-custom
+
 clear
 echo "=========================================="
 echo "YHDS VPN berhasil diinstall!"
-echo "UDP, SSH/WS, Xray, Nginx, Trojan-go siap digunakan"
+echo "UDP, Xray, Nginx, Trojan siap digunakan"
 echo "IPv6 dinonaktifkan, UDP lebih stabil"
 echo "Menu utama: menu"
 echo "Menu akan otomatis muncul setelah close atau login kembali"
-echo "Dashboard menampilkan ON biru / OFF merah"
 echo "Github: https://github.com/Yahdiad1/Udp-custom"
 echo "=========================================="
