@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =====================================
-# FULL INSTALLER YHDS VPN (UDP + Xray + Nginx + Trojan)
+# FULL INSTALLER YHDS VPN (UDP + SSH/WS + Xray + Nginx + Trojan)
 # =====================================
 
 # Update dan install tools
@@ -25,11 +25,8 @@ mkdir -p /root/udp
 
 # Banner YHDS VPN
 clear
-echo -e "          ░█▀▀▀█ ░█▀▀▀█ ░█─── ─█▀▀█ ░█▀▀█   ░█─░█ ░█▀▀▄ ░█▀▀█ " | lolcat
-echo -e "          ─▀▀▀▄▄ ░▀▀▀▄▄ ░█─── ░█▄▄█ ░█▀▀▄   ░█─░█ ░█─░█ ░█▄▄█ " | lolcat
-echo -e "          ░█▄▄▄█ ░█▄▄▄█ ░█▄▄█ ░█─░█ ░█▄▄█   ░█▄▄▀ ░█▄▄▀ ░█─── " | lolcat
-echo ""
-echo "        YHDS VPN Installer"
+figlet -f slant "YHDS VPN" | lolcat
+echo "Installer YHDS VPN - UDP, SSH/WS, Xray, Nginx, Trojan" | lolcat
 sleep 3
 
 # Set timezone Sri Lanka GMT+5:30
@@ -39,22 +36,21 @@ echo "Timezone diubah ke GMT+5:30 (Sri Lanka)"
 # ===============================
 # Install Xray
 # ===============================
-echo "Install Xray..."
+echo "Installing Xray..."
 bash -c "$(curl -L https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh)" >/dev/null 2>&1
 
 # ===============================
 # Install Nginx
 # ===============================
-echo "Install Nginx..."
+echo "Installing Nginx..."
 apt install nginx -y
 systemctl enable nginx
 systemctl start nginx
 
 # ===============================
-# Install Trojan
+# Install Trojan-go
 # ===============================
-echo "Install Trojan..."
-# Gunakan installer Trojan resmi (misal dari GitHub)
+echo "Installing Trojan..."
 bash -c "$(curl -sL https://raw.githubusercontent.com/p4gefau1t/trojan-install/master/trojan.sh)" >/dev/null 2>&1
 
 # ===============================
@@ -73,7 +69,6 @@ chmod 644 /root/udp/config.json
 # ===============================
 # Buat systemd service UDP Custom
 # ===============================
-if [ -z "$1" ]; then
 cat <<EOF > /etc/systemd/system/udp-custom.service
 [Unit]
 Description=YHDS VPN UDP Custom
@@ -89,26 +84,13 @@ RestartSec=2s
 [Install]
 WantedBy=default.target
 EOF
-else
-cat <<EOF > /etc/systemd/system/udp-custom.service
-[Unit]
-Description=YHDS VPN UDP Custom
 
-[Service]
-User=root
-Type=simple
-ExecStart=/root/udp/udp-custom server -exclude $1
-WorkingDirectory=/root/udp/
-Restart=always
-RestartSec=2s
-
-[Install]
-WantedBy=default.target
-EOF
-fi
+systemctl daemon-reload
+systemctl start udp-custom
+systemctl enable udp-custom
 
 # ===============================
-# Download skrip tambahan menu
+# Download skrip pendukung menu
 # ===============================
 mkdir -p /etc/YHDS
 cd /etc/YHDS
@@ -116,7 +98,7 @@ wget "$GITHUB_RAW/system.zip"
 unzip system.zip
 cd system
 mv menu /usr/local/bin
-chmod +x menu ChangeUser.sh Adduser.sh DelUser.sh Userlist.sh RemoveScript.sh torrent.sh
+chmod +x menu Adduser.sh DelUser.sh Userlist.sh RemoveScript.sh torrent.sh
 cd /etc/YHDS
 rm system.zip
 
@@ -125,37 +107,132 @@ rm system.zip
 # ===============================
 cat << 'EOM' > /usr/local/bin/menu
 #!/bin/bash
-# Menu utama YHDS VPN dengan Restart All Server (UDP, Xray, Nginx, Trojan)
+# YHDS VPN Menu
+
+status_server() {
+    clear
+    figlet -f slant "SERVER STATUS" | lolcat
+    echo "=============================================="
+    echo "              STATUS LAYANAN"
+    echo "=============================================="
+
+    # UDP
+    if systemctl is-active --quiet udp-custom; then
+        echo -e "UDP Custom        : \e[32mONLINE\e[0m"
+    else
+        echo -e "UDP Custom        : \e[31mOFFLINE\e[0m"
+    fi
+
+    # SSH
+    if systemctl is-active --quiet ssh; then
+        echo -e "SSH               : \e[32mONLINE\e[0m"
+    else
+        echo -e "SSH               : \e[31mOFFLINE\e[0m"
+    fi
+
+    # NGINX
+    if systemctl is-active --quiet nginx; then
+        echo -e "Nginx             : \e[32mONLINE\e[0m"
+    else
+        echo -e "Nginx             : \e[31mOFFLINE\e[0m"
+    fi
+
+    # XRAY
+    if systemctl is-active --quiet xray; then
+        echo -e "Xray              : \e[32mONLINE\e[0m"
+    else
+        echo -e "Xray              : \e[31mOFFLINE\e[0m"
+    fi
+
+    # TROJAN
+    if systemctl is-active --quiet trojan; then
+        echo -e "Trojan            : \e[32mONLINE\e[0m"
+    else
+        echo -e "Trojan            : \e[31mOFFLINE\e[0m"
+    fi
+
+    echo ""
+    echo "=============================================="
+    echo "               STATUS AKUN"
+    echo "=============================================="
+
+    # Hitung akun SSH
+    SSH_COUNT=$(grep -c "/bin/false" /etc/passwd)
+    echo "Total Akun SSH/WS       : $SSH_COUNT"
+
+    # Akun UDP
+    if [[ -f /etc/YHDS/system/udp-users.txt ]]; then
+        UDP_COUNT=$(wc -l < /etc/YHDS/system/udp-users.txt)
+    else
+        UDP_COUNT=0
+    fi
+    echo "Total Akun UDP          : $UDP_COUNT"
+
+    # Akun XRAY
+    XRAY_COUNT=$(grep -c '"id"' /usr/local/etc/xray/config.json 2>/dev/null)
+    echo "Total Akun Xray         : $XRAY_COUNT"
+
+    # Akun TROJAN
+    TROJAN_COUNT=$(grep -c '"password"' /usr/local/etc/trojan/config.json 2>/dev/null)
+    echo "Total Akun Trojan       : $TROJAN_COUNT"
+
+    echo ""
+    echo "Akun SSH/WS Aktif:"
+    last | head
+    echo ""
+    echo "Tekan ENTER untuk kembali..."
+    read
+}
 
 while true; do
     clear
-    echo "=================================="
-    echo "       YHDS VPN MENU"
-    echo "=================================="
-    echo "1) Tambah User"
-    echo "2) Hapus User"
-    echo "3) Daftar User"
-    echo "4) Remove Script"
-    echo "5) Torrent"
-    echo "6) Restart All Server (UDP, Xray, Nginx, Trojan)"
-    echo "7) Keluar"
-    echo "=================================="
-    read -p "Pilih menu [1-7]: " option
+    figlet -f slant "YHDS VPN" | lolcat
+    echo "==========================================="
+    echo "             YHDS VPN MENU"
+    echo "==========================================="
+    echo "1) Create User UDP"
+    echo "2) Create User SSH/WS Manual"
+    echo "3) Create User SSH/WS Trial"
+    echo "4) Delete User"
+    echo "5) List Users"
+    echo "6) Remove Script"
+    echo "7) Torrent"
+    echo "8) Restart All Server (UDP, Xray, Nginx, Trojan)"
+    echo "9) Restart UDP Custom"
+    echo "10) Status Server & Akun"
+    echo "11) Exit"
+    echo "==========================================="
+    read -p "Pilih menu [1-11]: " option
 
     case $option in
-        1) /etc/YHDS/system/Adduser.sh ;;
-        2) /etc/YHDS/system/DelUser.sh ;;
-        3) /etc/YHDS/system/Userlist.sh ;;
-        4) /etc/YHDS/system/RemoveScript.sh ;;
-        5) /etc/YHDS/system/torrent.sh ;;
-        6)
-            echo "Restart semua service..."
-            systemctl restart udp-custom xray nginx trojan
-            echo "Semua service sudah direstart!"
-            sleep 3
+        1) /etc/YHDS/system/Adduser.sh udp ;;
+        2) /etc/YHDS/system/Adduser.sh ;;
+        3) /etc/YHDS/system/Adduser.sh trial ;;
+        4) /etc/YHDS/system/DelUser.sh ;;
+        5) /etc/YHDS/system/Userlist.sh ;;
+        6) /etc/YHDS/system/RemoveScript.sh ;;
+        7) /etc/YHDS/system/torrent.sh ;;
+        8)
+            echo "Restarting semua service..."
+            systemctl restart udp-custom xray nginx trojan ssh
+            echo "Done!"
+            sleep 2
             ;;
-        7) echo "Keluar dari menu"; exit ;;
-        *) echo "Pilihan salah"; sleep 2 ;;
+        9)
+            echo "Restart UDP Custom..."
+            systemctl restart udp-custom
+            sleep 2
+            ;;
+        10)
+            status_server
+            ;;
+        11)
+            exit
+            ;;
+        *)
+            echo "Pilihan tidak valid!"
+            sleep 2
+            ;;
     esac
 
     read -p "Tekan Enter untuk kembali ke menu..."
@@ -164,26 +241,15 @@ EOM
 
 chmod +x /usr/local/bin/menu
 
-# ===============================
 # Jalankan menu otomatis saat login
-# ===============================
 if ! grep -q "/usr/local/bin/menu" /root/.bashrc; then
     echo "/usr/local/bin/menu" >> /root/.bashrc
 fi
 
-# ===============================
-# Start dan enable service UDP Custom
-# ===============================
-systemctl daemon-reload
-systemctl start udp-custom
-systemctl enable udp-custom
-
+# Finish
 clear
-echo "=========================================="
+figlet -f slant "YHDS VPN" | lolcat
 echo "YHDS VPN berhasil diinstall!"
-echo "UDP, Xray, Nginx, Trojan siap digunakan"
-echo "IPv6 dinonaktifkan, UDP lebih stabil"
-echo "Menu utama: menu"
-echo "Menu akan otomatis muncul setelah close atau login kembali"
+echo "UDP, SSH/WS, Xray, Nginx, Trojan siap digunakan"
+echo "Menu otomatis muncul setelah close atau login kembali"
 echo "Github: https://github.com/Yahdiad1/Udp-custom"
-echo "=========================================="
