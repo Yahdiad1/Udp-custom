@@ -1,2 +1,1 @@
-# Udp-custom
-wget "https://raw.githubusercontent.com/Yahdiad1/UDP-Custom-Script/main/install.sh" -O install.sh &amp;&amp; chmod +x install.sh &amp;&amp; bash install.sh
+wget https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/install.sh -O install.sh && chmod +x install.sh && bash install.sh
