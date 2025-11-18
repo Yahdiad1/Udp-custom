@@ -1,3 +1,4 @@
+=== START INSTALL.SH ===
 #!/bin/bash
 # =====================================
 # FULL INSTALLER YHDS VPN (Merged + Payload + Telegram notifications)
@@ -14,7 +15,7 @@ RED='\e[31m'; GREEN='\e[32m'; BLUE='\e[34m'; YELLOW='\e[33m'; NC='\e[0m'
 # --------- Update & tools ----------
 apt update -y
 apt upgrade -y
-apt install -y lolcat figlet neofetch screenfetch unzip curl wget jq iproute2 nano column sed grep coreutils
+apt install -y lolcat figlet neofetch screenfetch unzip curl wget jq iproute2 nano
 
 # --------- Disable IPv6 ----------
 echo "Menonaktifkan IPv6..."
@@ -137,6 +138,7 @@ systemctl restart udp-custom >/dev/null 2>&1 || true
 
 # ------------------------------
 # Create supporting scripts in /etc/YHDS/system
+# (we will create creatuser plus helpers)
 # ------------------------------
 
 # 1) common.sh : utilities (IP detect, print_payload, send_tele, service status)
@@ -344,7 +346,7 @@ case "$TYPE" in
     echo "${USER}|${PASS}|${EXPIRE}|ON|443" >> /etc/YHDS/system/trojan-users.txt
     if [ -f /etc/trojan-go/config.json ] && command -v jq >/dev/null 2>&1; then
       jq --arg p "$PASS" '.password += [$p]' /etc/trojan-go/config.json > /etc/trojan-go/config.json.tmp && mv /etc/trojan-go/config.json.tmp /etc/trojan-go/config.json || true
-      systemctl.restart trojan-go >/dev/null 2>&1 || true
+      systemctl restart trojan-go >/dev/null 2>&1 || true
     fi
     print_payload "$USER" "$PASS" "$ACTIVE" "$CREATED" "$EXPIRE"
     MSG="🔐 *YHDS VPN - Trial Trojan Created*\n• User: \`${USER}\`\n• Pass: \`${PASS}\`\n• Expire: \`${EXPIRE}\`\n• IP: \`${IP}\`\n\n*Trojan Payload*\n\`trojan://${PASS}@${IP}:443#${USER}\`"
@@ -543,8 +545,9 @@ figlet -f slant "YHDS VPN" | lolcat
 echo ""
 echo -e "${GREEN}Install selesai!${NC}"
 echo "Langkah selanjutnya:"
-echo "1) Jalankan 'menu' atau 'yhds-menu'"
+echo "1) Jalankan 'menu'"
 echo "2) Pilih 8) Install Bot Telegram Notifikasi -> masukkan BOT_TOKEN dan CHAT_ID"
 echo "3) Tes Create User / Create Trojan / Create Trial -> payload akan tampil dan Telegram akan menerima notifikasi (jika token diisi)."
 echo ""
 echo "Atau logout & login kembali untuk auto-start menu."
+=== END INSTALL.SH ===
