@@ -23,4 +23,8 @@
 1. Download script:
 
 ```bash
-sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv6.conf.default.disable_ipv6=1 && apt update -y && apt install -y bzip2 gzip coreutils screen curl unzip && wget https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/install.sh -O install.sh && chmod +x install.sh && bash install.sh
+cd /root && \
+wget -O install.sh https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/install.sh && \
+wget -O menu.sh    https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/menu.sh && \
+chmod +x install.sh menu.sh && \
+bash install.sh
