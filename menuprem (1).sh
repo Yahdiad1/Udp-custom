@@ -95,4 +95,16 @@ while true; do
     11) echo "Keluar dari menu"; exit 0 ;;
     *) echo "Pilihan tidak valid"; sleep 1 ;;
   esac
-done
+EOF
+
+chmod +x /usr/local/bin/menu
+
+# Auto menu saat login
+if ! grep -q "/usr/local/bin/menu" /root/.bashrc; then
+    echo "/usr/local/bin/menu" >> /root/.bashrc
+fi
+
+clear
+echo -e "YHDS VPN PREMIUM selesai diinstall!" | lolcat
+echo "Jalankan menu: menu"
+echo "Close terminal → login lagi → menu muncul otomatis"
