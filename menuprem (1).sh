@@ -95,7 +95,7 @@ while true; do
     11) echo "Keluar dari menu"; exit 0 ;;
     *) echo "Pilihan tidak valid"; sleep 1 ;;
   esac
-EOF
+ done
 
 chmod +x /usr/local/bin/menu
 
