@@ -1,30 +1,23 @@
 #!/bin/bash
 # =========================================
-# YHDS VPN UDP-Custom Installer — Final Version
-# Hanya Xray + UDP-Custom + Menu baru
+# YHDS VPN UDP-Custom Single Installer
+# Tanpa Trojan-Go, menu terbaru otomatis
 # Supports Ubuntu/Debian 20/22
 # =========================================
 
 set -euo pipefail
-
-# -------------------------------
-# Colors
-# -------------------------------
 RED='\033[31m'; GREEN='\033[32m'; YELLOW='\033[33m'; BLUE='\033[34m'; NC='\033[0m'
 
-# -------------------------------
-# Variables
-# -------------------------------
-GITHUB_RAW="https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main"
 INSTALL_DIR="/root/udp"
 MENU_DIR="/etc/YHDS"
-SYSTEMD_FILE="/etc/systemd/system/udp-custom.service"
 LOG_DIR="/root/YHDS-logs"
-ENABLE_IPV6_DISABLE=true  # set false jika server perlu IPv6
+SYSTEMD_FILE="/etc/systemd/system/udp-custom.service"
+GITHUB_RAW="https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main"
+ENABLE_IPV6_DISABLE=true
 
 mkdir -p "$INSTALL_DIR" "$MENU_DIR" "$LOG_DIR"
 
-echo -e "${GREEN}Step 1: Updating system & installing dependencies...${NC}"
+echo -e "${GREEN}Step 1: Update & install dependencies...${NC}"
 apt update -y && apt upgrade -y
 apt install -y curl wget unzip screen bzip2 gzip figlet lolcat jq
 
@@ -32,7 +25,7 @@ apt install -y curl wget unzip screen bzip2 gzip figlet lolcat jq
 # Optional IPv6 disable
 # -------------------------------
 if [ "$ENABLE_IPV6_DISABLE" = true ]; then
-    echo -e "${YELLOW}Disabling IPv6 for UDP stability...${NC}"
+    echo -e "${YELLOW}Disabling IPv6...${NC}"
     sysctl -w net.ipv6.conf.all.disable_ipv6=1
     sysctl -w net.ipv6.conf.default.disable_ipv6=1
     sysctl -w net.ipv6.conf.lo.disable_ipv6=1
@@ -47,7 +40,7 @@ fi
 # -------------------------------
 echo -e "${GREEN}Installing Xray...${NC}"
 bash -c "$(curl -L https://raw.githubusercontent.com/XTLS/Xray-install/main/install-release.sh)" >/root/YHDS-logs/xray-install.log 2>&1 || {
-    echo -e "${RED}Xray install failed. Check log at /root/YHDS-logs/xray-install.log${NC}"
+    echo -e "${RED}Xray install failed. Check log${NC}"
     exit 1
 }
 
@@ -85,7 +78,7 @@ systemctl enable udp-custom
 systemctl start udp-custom
 
 # -------------------------------
-# Setup NEW menu
+# Download & setup NEW menu
 # -------------------------------
 echo -e "${GREEN}Downloading menu.sh (NEW version)...${NC}"
 wget -q "$GITHUB_RAW/menu.sh" -O "$MENU_DIR/menu.sh" || {
@@ -93,8 +86,6 @@ wget -q "$GITHUB_RAW/menu.sh" -O "$MENU_DIR/menu.sh" || {
     exit 1
 }
 chmod +x "$MENU_DIR/menu.sh"
-
-# Link ke /usr/local/bin/menu supaya bisa dijalankan langsung
 ln -sf "$MENU_DIR/menu.sh" /usr/local/bin/menu
 chmod +x /usr/local/bin/menu
 grep -qxF 'menu' /root/.bashrc || echo 'menu' >> /root/.bashrc
