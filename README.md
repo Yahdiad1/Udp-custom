@@ -18,13 +18,35 @@
 
 ---
 
+
 ## Cara Install
 
 1. Download script:
+# YHDS VPN UDP‑Custom
+
+Installer VPN UDP‑Custom terbaru dengan **Xray WS/VLESS** dan **UDP Custom 1‑65535**, dilengkapi menu baru dan tanpa Trojan‑Go.
+
+---
+
+## Fitur
+- Install Xray WS / VLESS  
+- Install UDP Custom range 1‑65535  
+- Menu manajemen lengkap (melalui `menu.sh`)  
+- Systemd service untuk UDP‑Custom  
+- IPv6 **opsional** di‑disable untuk stabilitas UDP  
+
+---
+
+## Sistem Operasi yang Didukung
+- Debian 10 / 11 / 12  
+- Ubuntu 20.04 / 22.04  
+
+---
+
+## Cara Install (hanya 1 wget)
+Jalankan perintah berikut di VPS (sebagai root):
 
 ```bash
-cd /root && \
-wget -O install.sh https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/install.sh && \
-wget -O menu.sh    https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/menu.sh && \
-chmod +x install.sh menu.sh && \
-bash install.sh
+wget ‑O yhds‑full.sh https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/yhds‑full.sh && \
+chmod +x yhds‑full.sh && \
+bash yhds‑full.sh
