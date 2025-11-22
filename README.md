@@ -47,6 +47,4 @@ Installer VPN UDP‑Custom terbaru dengan **Xray WS/VLESS** dan **UDP Custom 1�
 Jalankan perintah berikut di VPS (sebagai root):
 
 ```bash
-wget ‑O yhds‑full.sh https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/yhds‑full.sh && \
-chmod +x yhds‑full.sh && \
-bash yhds‑full.sh
+wget -O install.sh https://raw.githubusercontent.com/Yahdiad1/Udp-custom/main/install.sh && bash install.sh
